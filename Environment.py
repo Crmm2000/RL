@@ -6,8 +6,12 @@ from Grid import grid
 
 #%%
 class environment(grid):
-    'The environment obeys the laws/symmetries of the gridworld, but keeps track of everything thats in it, including the agents, thus this is what the agent interacts with '
     """
+    The environment obeys the laws/symmetries of the gridworld,
+    it has the Markov property, this is what the agent interacts with.
+    T-increments occur at the environment steps
+    Dynamics => how actions change the state
+    
     Interaction:
         Gets:
         Action agent At
@@ -15,16 +19,10 @@ class environment(grid):
         Emits:
         Observation Ot+1
         Reward Ot+1
-
-    Note that this also entails that the t-increments happen at the environment steps
     """
-    # TO DO: dynamics, how actions change
-    
+
     def __init__(self, width = 4, height = 4):
         super().__init__(width, height) # environment exists in grid
-
-        'Model'
-        
 
         #Reward = scalar feedback signal
         self.R = np.zeros((self.x1, self.x2)) 
@@ -35,8 +33,6 @@ class environment(grid):
         #Transition dynamics environment P(s', s): Pss' = P[St+1 = s'| St = s] (thus how actions change a state)
         self.P = np.ones((self.nstates, self.nstates)) / self.nstates #initialize
         
-
-        'Dynamics -> how actions change the state'
     def add_absorbing_state(self, state):
         self.absorbing_state = state
         if self.absorbing_state != None:
@@ -62,7 +58,6 @@ class environment(grid):
 
                 # Set obstacle dynamics
                 self.P[:, i] = 0 #Chance of getting into a state where the wall is
-                
                 
             self.P = self.P/ self.P.sum(axis=1, keepdims=True)
         return obstacle_coordinates

@@ -2,9 +2,10 @@ import numpy as np
 import seaborn as sns
 
 class grid():
-    'the idea of the grid is that even if the information is not accessible to the agent, the agent can not help but do it?'
     def __init__(self, width, height):
         self.map = np.zeros(shape = (width, height)) 
+
+        #todo -> make dictionairy
         self.states_id = [i for i in range(width*height)]
         self.state_names = [f's{i}' for i in range(width*height)] 
         self.nstates = width*height
@@ -26,24 +27,14 @@ class grid():
             self.coordinates[i] = np.nan
             self.nstates = self.states - len(self.forbidden_states)
 
-    # To do, align with env
-    def coords_to_state(self, coords): #-> can place this in gridwordl
-        # Boundaries
-        if coords[0] < 0:
-            coords[0] = 0
-        if coords[1] < 0:
-            coords[1] = 0
-        if coords[0] > self.x1-1:
-            coords[0] = self.x1-1
-        if coords[1] > self.x2-1:
-            coords[1] = self.x2-1
-        new_coords = self.fit_grid(self.states_id)[int(coords[0])][int(coords[1])]
-        return self.fit_grid(self.states_id)[int(coords[0])][int(coords[1])]
-
-    # Visualisation
+    # Aux
     def fit_grid(self, array):
         return np.reshape(array, (self.x1, self.x2))
     
-    # Grid
+    def coords_to_state(self, coords): 
+        coords[0] = min(max(coords[0], 0), self.x1 - 1)
+        coords[1] = min(max(coords[1], 0), self.x2 - 1)
+        return self.fit_grid(self.states_id)[int(coords[0])][int(coords[1])]
+    
     def plot_grid(self):
         sns.heatmap(self.fit_grid(self.states_id), annot = self.fit_grid(self.state_names), cbar = False, xticklabels = False, yticklabels= False, fmt = 's')

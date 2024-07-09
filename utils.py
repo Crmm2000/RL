@@ -14,8 +14,8 @@ def action_to_vector(action):
         vector[1] = 1
     return vector
 
-def one_hot(state, env):
-    a = np.zeros(env.nstates)
+def one_hot(state, nstates):
+    a = np.zeros(nstates)
     a[state] = 1
     return a
 
