@@ -8,9 +8,6 @@ from Grid import grid
 class environment(grid):
     'The environment obeys the laws/symmetries of the gridworld, but keeps track of everything thats in it, including the agents, thus this is what the agent interacts with '
     """
-    Maybe also internal dynamics: t increments are environment steps, additionally
-    Since the environment is markov it is not necessary to keep explicit track of the history
-
     Interaction:
         Gets:
         Action agent At
