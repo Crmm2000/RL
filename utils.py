@@ -1,7 +1,5 @@
 import numpy as np
 
-# Helper functions
-
 def action_to_vector(action):
     vector = np.zeros(2)
     if action == 0: #up
@@ -25,4 +23,3 @@ def normalized(length, states):
         a[i] = 1
     a = a / np.sum(a)
     return a
-#coordinates to state
