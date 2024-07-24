@@ -1,25 +1,16 @@
 import numpy as np
 
 def action_to_vector(action):
-    vector = np.zeros(2)
-    if action == 0: #up
-        vector[0] = -1
-    elif action == 1: #down
-        vector[0] = 1 
-    elif action == 2: # 'left':
-        vector[1] = -1
-    elif action == 3: #'right':
-        vector[1] = 1
-    return vector
+    vectors = {
+        0: ([-1, 0], '↑'),  # up
+        1: ([1, 0], '↓'),   # down
+        2: ([0, -1], '←'),  # left
+        3: ([0, 1], '→')    # right
+    }
+    vector, symbol = vectors.get(action, ([0, 0], ''))
+    return np.array(vector), symbol
 
 def one_hot(state, nstates):
     a = np.zeros(nstates)
     a[state] = 1
-    return a
-
-def normalized(length, states):
-    a = np.zeros(length)
-    for i in states:
-        a[i] = 1
-    a = a / np.sum(a)
     return a
