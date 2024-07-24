@@ -43,36 +43,18 @@ class Environment(Grid):
             self.P[:, state] = 0  
         self.P = np.divide(self.P, self.P.sum(axis=1, keepdims=True)) 
     
-    # Markov chain
-    def markov_chain(self, start_state, n = 100):
-
-        # Initialize
-        next_state = start_state 
-        t = 0
-        t_end = n
-
-        # Bookkeeping
-        trajectory = [self.states[start_state]] #Trajectory states
-
-        # Step through environment
-        while (t != t_end-1):
-    
-            current_state = next_state #St
-            t +=1 #step
-            next_state = int(np.random.choice(self.states_id, p = self.P[current_state]))  #St+1
-
-            # Bookkeeping
-            trajectory.append(f'{self.states[next_state]}')
-
-        return np.array(trajectory).T
-    
-    'Auxilliary functions'
+    'Aux'
     def plot_dynamics(self):
         s = sns.heatmap(self.P, annot = True, annot_kws = {'size': 5}, yticklabels = list(self.states.values()), xticklabels = list(self.states.values()))
         s.set(title = f'P(s+1|s) = Transition dynamics', xlabel='S+1', ylabel='S')
 
     def heatmap(self, values):
         sns.heatmap(self.fit_grid(values), annot = True)
+    
+    def plot_landscape(self, surface):
+        fig = plt.figure()
+        ax = fig.add_subplot(projection = '3d')
+        ax.plot_surface(self.X1, self.X2, self.fit_grid(surface))
 
 
 # S, P, R, GAMMA
@@ -89,6 +71,7 @@ class MRP(Environment, Grid): #
 
     'R'
     def set_rewards(self, goal_states, goal_reward, penalty_steps = 0):
+        goal_states = np.array([goal_states])
         self.R = self.R + penalty_steps 
         for state in goal_states:
             self.R[state] = goal_reward
@@ -96,40 +79,6 @@ class MRP(Environment, Grid): #
     # Reward function: E[Rt+1|s] -> immediate reward
     def reward_function(self, state_agent):
         return self.R[int(state_agent)] 
-    
-    # MRP
-    def markov_reward_process(self, start_state, n = 100):
-        # Initialize
-        next_state = start_state 
-        t = 0
-        t_end = n 
-        
-        # Bookkeeping 
-        Gt = 0 #Return 
-
-        # Step through environment
-        while (t != t_end):
-            current_state = int(next_state) # St
-            t+=1 # step
-            reward = self.reward_function(current_state) # Rt+1 
-            next_state = np.random.choice(self.states_id, p = self.P[current_state]) # St+1
-
-            # Bookkeeping
-            Gt += (self.gamma**(t-1)) * reward  #Keep track of discounted rewards
-        return Gt 
-    
-    # State value = E(gt | st = start_state)
-    def state_value_function(self, start_state, episodes = 100, n = 100):
-        cumulative_returns = 0
-        for i in range(episodes): #loop through episodes
-            cumulative_returns = cumulative_returns + self.markov_reward_process(n = n, start_state = start_state) 
-        state_value = cumulative_returns/episodes
-        return state_value 
-    
-    # Bellmann Expectation state-value function: R + gamma * (P@v) -> v = inv(I - gamma * P) @ R
-    def bellmann_expectation_matrix(self):
-        R = np.nan_to_num(self.R, nan=0) 
-        return np.linalg.inv((np.identity(self.nstates) - (self.gamma * self.P))) @ R.T
 
     'Auxilliary functions'
     def plot_rewards(self):
@@ -239,19 +188,6 @@ class MDP(MRP, Environment, Grid):
         for state in states:
             self.P[:, state] = u.one_hot(state, self.nstates)
 
-    #P(s'|s, pi) #from policies (2), average next state over policy
-    def transition_pi(self, state):
-        p_matrix = np.zeros((self.nstates))
-        for i in range(self.agent.n_actions):
-            p_matrix += self.dynamics_environment(state = state, action = i)[3] * self.agent.policy[state][i]
-        return p_matrix
-    
-    #R(s,pi), from policies (2), average reward over policy
-    def reward_pi(self, state):
-        rewards = 0
-        for i in range(self.agent.n_actions):
-            rewards += self.reward_function(state = state, action = i) * self.agent.policy[state][i]
-        return rewards
 
     #P(s', s|a)
     def get_transition_action(self, action, absorbing_state = None): # -? again somewhere here it should be easier, the boundary conditions shouldnt be necessary
@@ -282,96 +218,6 @@ class MDP(MRP, Environment, Grid):
     def reward_function(self, state, action): # I think now this technically is r(s,a,s')
         return self.reward_state_action()[action][state] 
     
-    #(r(s,a, s'))
-    def r_sa(self, state, action, successor_state):
-        return self.R[action][state] #in this grid world, there
-    
-    # to check if the dynamics seem alright
-    def markov_reward_process(self, start_state, n = 100):
-        # Initialize
-        next_state = start_state
-        terminate = False
-        t = 0
-        t_end = n # time horizon
-        gamma = self.gamma
-
-        #Bookkeeping
-        self.agent.Gt = 0 #return
-
-        #Step through environment
-        while (t != t_end-1 and not terminate):
-            current_state = next_state #St
-            #Agent receives reward and state
-            action = self.agent.step(current_state) #Agent picks an action
-            t+=1 #step
-            reward = self.R[action][current_state] #Rt+1
-            dynamics = self.dynamics_environment(state = current_state, action = action)[3]
-            if np.sum(dynamics) > 0:
-                next_state = np.random.choice(self.states_id, p = dynamics) #St+1
-            
-
-            #Bookkeeping
-            self.agent.Gt += (gamma ** (t-1) * reward)
-        return self.agent.Gt
-    
-    def q_value(self, start_state, start_action, n = 100):
-        # Initialize
-        next_state = start_state
-        terminate = False
-        t = 0
-        t_end = n # time horizon
-        gamma = self.gamma
-
-        #Bookkeeping
-        self.agent.Gt = 0 #return
-
-        #first step based on starting action
-        current_state = next_state #St
-        #Agent receives reward and state
-        action = start_action #Agent picks an action
-        t+=1 #step
-        reward = self.R[action][current_state] #Rt+1
-        next_state = np.random.choice(self.states_id, p = self.dynamics_environment(state = current_state, action = action)[3]) #St+1
-
-        #Bookkeeping
-        self.agent.Gt += (gamma ** (t-1) * reward)
-
-        #Step through environment
-        while (t != t_end-1 and not terminate):
-            current_state = next_state #St
-            #Agent receives reward and state
-            action = self.agent.step(current_state) #Agent picks an action
-            t+=1 #step
-            reward = self.R[action][current_state] #Rt+1
-            next_state = np.random.choice(self.states_id, p = self.dynamics_environment(state = current_state, action = action)[3]) #St+1
-
-            #Bookkeeping
-            self.agent.Gt += (gamma ** (t-1) * reward)
-        return self.agent.Gt
-    
-    def state_action_value(self, start_state, start_action, episodes = 100, n = 100):
-        #loop through episodes
-        state_returns = 0
-        for i in range(episodes):
-            #Cumulate Gt
-            state_returns = state_returns + self.q_value(n = n, start_state = start_state, start_action = start_action)
-            
-        # State value = E(gt | st = start_state)
-        state_value = state_returns/episodes
-        return state_value
-
-    def bellmann_q_expectation_matrix(self): #somehow this differs
-        R = np.zeros(self.nstates)
-        p = np.zeros(self.nstates) #could probably get this out of the other functions somewhere
-        for i in range(self.nstates):
-            R[i] = self.reward_pi(state = i)
-            p += self.transition_pi(state = i)
-        p = np.divide(p, self.nstates)
-        gamma = self.gamma
-
-        # # R + gamma * (P@v) -> v = inv(I - gamma * Ppi) @ Rpi
-        state_values_matrix = np.linalg.inv((np.identity(self.nstates) - (gamma * p))) @ R
-        return  state_values_matrix
 
     'Auxilliary functions'
     def render(self, state, surface):
