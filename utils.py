@@ -14,3 +14,10 @@ def one_hot(state, nstates):
     a = np.zeros(nstates)
     a[state] = 1
     return a
+
+#only accurate if there is 1 optimal action
+def policy_visual(env, policy):
+    policies = []
+    for state in range(env.nstates):
+        policies.append(env.agent.actions.get(np.argmax(policy[state]))[1])
+    return print(env.fit_grid(np.array(policies)))

@@ -116,6 +116,7 @@ class MDP(MRP, Environment, Grid):
             for j in range(self.n_actions):
                 for i in mdp.states_id:
                     P_matrix[j, i] = mdp.transition_matrix(action = j, state = i, absorbing_state = mdp.absorbing_state)
+            mdp.P = P_matrix
             return P_matrix
         
         def step(self, state):
@@ -220,16 +221,17 @@ class MDP(MRP, Environment, Grid):
     
 
     'Auxilliary functions'
-    def render(self, state, surface):
+    def render(self, state, surface, title):
         state = int(state)
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.plot_surface(self.X1, self.X2, surface.T, alpha=0.7)
         ax.plot(self.coordinates[state][0], self.coordinates[state][1], [1, 0], 'k-o', label=f'State: {state}')
         ax.plot(self.coordinates[self.goal_state][0], self.coordinates[self.goal_state][1], [0], 'o')
-        plt.title(f'Gt: {self.agent.Gt}', fontsize = 12)
+        plt.title(title, fontsize = 12)
         plt.legend()
 
         display.display(plt.gcf())
         display.clear_output(wait=True)
+    
 
